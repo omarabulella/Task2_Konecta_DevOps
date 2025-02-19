@@ -1,0 +1,64 @@
+---
+- name: Configure The Docker Machine
+  hosts: docker_machine
+  become: yes
+  vars:
+    packages:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - python3-pip
+      - virtualenv
+      - python3-setuptools
+  tasks:
+    - name: Install Dependencis
+      apt:
+        name: "{{item}}"
+        state: present
+        update_cache: yes
+      loop: "{{packages}}"
+       
+    - name: Add Docker GPG apt key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repo
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: yes
+
+    - name: Ensure Docker service is running
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: pull redis image
+      community.docker.docker_image:
+        name: redis
+        source: pull
+
+    - name: create redis container
+      community.docker.docker_container:
+        name: mycontainer
+        state: present
+        image: redis
+        state: started
+
+    - name: run ps command
+      command: docker ps
+      register: docker_ps_output
+
+    - name:  Show output 
+      debug:
+        msg: "{{ docker_ps_output.stdout_lines }}"
+
+
