@@ -1,0 +1,51 @@
+---
+- name: Playbook for frontend configuration
+  hosts: frontend_machine
+  become: yes
+  gather_facts: yes
+  vars:
+    package_name:
+      - vim
+      - curl 
+      - git
+ # pre_tasks:
+ #   - name: Ensure the target machine have enough memory
+ #    fail:
+ #      msg: "This machine has less than 1Gb Ram"
+ #    when: ansible_memtotal_mb < 1024
+  tasks:
+    - name: Install NGINX 
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Start NGINX service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+      
+    - name: Install packages
+      apt:
+        name: "{{item}}"
+        state: present
+      loop: "{{package_name}}"
+    
+    - name: Deply my web page
+      copy:
+        src: /home/ubuntu/index.html
+        dest: /var/www/html/index.html
+        owner: www-data
+        group: www-data
+        mode: '0644'
+      notify: Restart Nginx
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+
